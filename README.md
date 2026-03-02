@@ -1,82 +1,85 @@
-# Yelp Business Data Pipeline (AWS + Databricks + Neo4j)
+# Yelp Business Data Pipeline
 
-End-to-end data pipeline that ingests Yelp JSON datasets, transforms them into analytics-ready Parquet tables, and enables BI + graph analytics through AWS Athena/QuickSight and Neo4j.
+## Overview
 
-## Why this matters
-Most real-world data work is messy JSON + schema drift + scale. This project demonstrates production-style ETL: ingestion → validation → transformation → curated tables → analytics & visualization.
+This repository contains a data engineering pipeline that ingests Yelp business and review datasets, cleans and transforms the raw data, and loads it into a warehouse for downstream analytics. The goal of the pipeline is to demonstrate an end‑to‑end ETL workflow using modern tools that scales to large datasets and produces clean, queryable tables.
 
-## What it does
-- Ingests Yelp JSON datasets from AWS S3.
-- Performs PySpark ETL in Databricks:
-  - Flattens nested JSON/struct columns.
-  - Normalizes schemas and enforces consistent types.
-  - Removes duplicates and handles missing/null fields.
-  - Generates curated, query-friendly tables in Parquet.
-- Enables SQL analytics with Athena, dashboards via QuickSight, and graph analytics via Neo4j (user-business relationships).
+## Features
 
-## Tech Stack
-AWS (S3, Lambda [optional trigger], Athena, QuickSight)  
-Processing: Databricks (PySpark)  
-Graph DB: Neo4j AuraDB (optional)  
-Storage: Parquet on S3
+- **Data acquisition** – download raw JSON or CSV dumps of Yelp businesses, reviews and users (e.g. from Yelp’s open dataset).
+- **Schema inference and normalization** – parse nested JSON structures, extract relevant fields, and produce normalized tables (businesses, categories, reviews, users) with primary keys.
+- **Data quality checks** – validate field types, handle missing values, and enforce referential integrity between tables.
+- **Incremental processing** – support incremental loads by processing new files or updated records without reprocessing the entire dataset.
+- **Load to warehouse** – write cleaned tables to a data warehouse (e.g. PostgreSQL, BigQuery or Snowflake) with optimal data types and clustering.
+- **Orchestration** – optionally orchestrate the pipeline with Airflow or Prefect for scheduling, monitoring and retry logic.
 
-## Outputs (Proof)
-- Curated tables: `dim_business`, `fact_reviews`, `dim_users` (and others).
-- Queryable datasets in Athena and QuickSight dashboards.
-- Graph model for network analysis (users, businesses, categories).
+## Directory structure
 
-> **Screenshots (please add):**
-> - Athena query results (`docs/athena_query.png`)
-> - QuickSight dashboard (`docs/quicksight_dashboard.png`)
-> - Neo4j graph view (`docs/neo4j_graph.png`)
-> - Databricks job run (`docs/databricks_run.png`)
-
-## Architecture overview
-1. **Ingest raw JSON** from Yelp dataset to S3.
-2. **Process with Databricks** using PySpark to clean, flatten, and prepare Parquet tables.
-3. **Store curated tables** back to S3.
-4. **Query** curated data using AWS Athena and visualize with QuickSight.
-5. **Optional**: Load selected entities into Neo4j for graph analysis.
-
-## Getting started
-### Running in Databricks
-1. Fork this repo and upload the PySpark scripts from the `ETL-script` directory to your Databricks workspace.
-2. Configure S3 paths and AWS credentials in a notebook or cluster environment variables (`RAW_BUCKET`, `CURATED_BUCKET`, etc.).
-3. Execute the scripts in order to ingest businesses, reviews, and users, then transform them into curated tables.
-4. Query the curated tables with Athena, or create dashboards in QuickSight.
-
-### Local sample run
-If you want to experiment locally, run a simplified sample:
 ```
-python scripts/sample_run.py --input data/sample_business.json --output data/out.parquet
-```
-(Assumes you have Python, PySpark, and `data/sample_business.json` downloaded.)
-
-## Data model
-- `dim_business`: Business attributes (id, name, location, categories, attributes…)
-- `dim_users`: User attributes (id, review_count, yelping_since…)
-- `fact_reviews`: Review facts (business_id, user_id, stars, date, text…)
-
-## Examples of insights
-- Top-rated categories by city.
-- Trends in star ratings over time.
-- Power users and most-reviewed businesses.
-- Relationship networks (via Neo4j) to detect communities.
-
-## Repository structure
-```
-ETL-script/       # PySpark scripts for ingestion and transformation
-lambda/           # AWS Lambda function to trigger pipeline (optional)
-neo4j_load/       # Scripts to load data into Neo4j
-test_cases/       # Sample test scripts
-README.md         # Project documentation
+Yelp-Business-Data-Pipeline/
+├── src/
+│   ├── extract.py        # download or read raw Yelp data files
+│   ├── transform.py      # clean, normalize and validate records
+│   ├── load.py           # load cleaned tables into the warehouse
+│   ├── utils.py          # helper functions for logging, config, etc.
+│   └── config.yml        # configuration for file paths and connections
+├── data/
+│   └── raw/              # store raw input files (not committed)
+├── tests/
+│   └── test_transform.py # tests for transformation logic
+├── docs/
+│   └── architecture.md   # pipeline diagrams and notes
+├── readme.md             # project description (this file)
+├── requirements.txt      # Python dependencies
+└── .gitignore
 ```
 
-## Improvements
-- Implement automated data quality checks (e.g., Great Expectations).
-- Add CI for linting/testing.
-- Add orchestrator (Airflow or Databricks Jobs).
-- Provide sample dashboards and graph queries.
+## Setup
 
-## Author
-Sumanth Reddy Koppula
+1. **Clone the repository:**
+
+   ```bash
+   git clone https://github.com/Suma4681/Yelp-Business-Data-Pipeline.git
+   cd Yelp-Business-Data-Pipeline
+   ```
+
+2. **Create a virtual environment and install dependencies:**
+
+   ```bash
+   python3 -m venv venv
+   source venv/bin/activate
+   pip install -r requirements.txt
+   ```
+
+3. **Configure the pipeline:**
+
+   Edit `src/config.yml` to specify paths to your raw data files and warehouse connection details. Do not commit secrets; use environment variables for credentials where possible.
+
+4. **Run the pipeline:**
+
+   ```bash
+   python src/extract.py
+   python src/transform.py
+   python src/load.py
+   ```
+
+   Or orchestrate with a tool like Airflow by writing a DAG that calls these scripts.
+
+## Testing
+
+Run the test suite with:
+
+```bash
+pytest
+```
+
+## Future improvements
+
+- Add streaming ingestion with Kafka for near‑real‑time updates.
+- Implement data quality dashboards to visualize missing values and outliers.
+- Containerize the pipeline with Docker and provide a `docker-compose.yml` for local development.
+- Integrate with a reporting layer (e.g. Looker or Superset) to build dashboards on top of the warehouse.
+
+## License
+
+This project is licensed under the MIT License.
